@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מה מבשלים היום?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ===== צבעים (משתנים) ===== */
+    :root {
+      --bg: #fdf8f3;
+      --surface: #ffffff;
+      --text: #2b2118;
+      --muted: #7a6a5c;
+      --primary: #e0612b;
+      --primary-dark: #b84a1c;
+      --chip: #f5e8dc;
+      --border: #eadccf;
+      --shadow: 0 6px 20px rgba(80, 45, 20, 0.10);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #1c1612;
+        --surface: #29211b;
+        --text: #f4ebe2;
+        --muted: #b9a797;
+        --primary: #f07a45;
+        --primary-dark: #ff9466;
+        --chip: #3a2e25;
+        --border: #43362c;
+        --shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Heebo", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    button { font-family: inherit; cursor: pointer; }
+    .container { max-width: 1150px; margin: 0 auto; padding: 0 16px; }
+
+    /* ===== כותרת עליונה ===== */
+    header {
+      background: linear-gradient(135deg, #e0612b, #f2a541);
+      color: #fff;
+      padding: 40px 0 32px;
+    }
+    header h1 { margin: 0; font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; }
+    header p { margin: 4px 0 24px; opacity: .92; font-size: 1.1rem; }
+
+    .search-box {
+      background: var(--surface);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      color: var(--text);
+    }
+    .modes { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .mode-btn {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: .95rem;
+    }
+    .mode-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .search-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .search-row input {
+      flex: 1 1 220px;
+      min-width: 0;
+      padding: 12px 16px;
+      font-size: 1rem;
+      font-family: inherit;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .search-row input:focus { outline: 2px solid var(--primary); border-color: transparent; }
+    .btn {
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      background: var(--primary);
+      color: #fff;
+      transition: background .2s;
+    }
+    .btn:hover { background: var(--primary-dark); }
+    .btn.secondary { background: var(--chip); color: var(--text); }
+    .btn.secondary:hover { background: var(--border); }
+    .hint { font-size: .85rem; color: var(--muted); margin: 8px 2px 0; }
+
+    /* ===== קטגוריות ===== */
+    .categories {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 20px 0 8px;
+      scrollbar-width: thin;
+    }
+    .cat {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 14px 6px 8px;
+      border-radius: 999px;
+      font-size: .95rem;
+    }
+    .cat img { width: 32px; height: 32px; object-fit: contain; }
+    .cat.active { border-color: var(--primary); background: var(--chip); font-weight: 700; }
+
+    /* ===== תוצאות ===== */
+    .results-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+    }
+    .results-head h2 { margin: 0; font-size: 1.5rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 20px;
+      padding-bottom: 48px;
+    }
+    .card {
+      background: var(--surface);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform .2s;
+      position: relative;
+      text-align: right;
+      border: none;
+      padding: 0;
+      color: var(--text);
+    }
+    .card:hover { transform: translateY(-4px); }
+    .card img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+    .card-body { padding: 12px 14px 16px; }
+    .card h3 { margin: 0; font-size: 1.05rem; direction: ltr; text-align: right; }
+    .card .meta { color: var(--muted); font-size: .85rem; margin-top: 4px; }
+    .fav-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255,255,255,.92);
+      font-size: 1.2rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,.2);
+    }
+
+    .status { text-align: center; color: var(--muted); padding: 48px 16px; grid-column: 1 / -1; font-size: 1.1rem; }
+    .spinner {
+      width: 42px; height: 42px; margin: 0 auto 12px;
+      border: 4px solid var(--chip);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== חלון מתכון ===== */
+    dialog {
+      border: none;
+      border-radius: 20px;
+      padding: 0;
+      width: min(860px, calc(100% - 32px));
+      max-height: calc(100vh - 48px);
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    }
+    dialog::backdrop { background: rgba(30, 18, 10, .6); }
+    .modal-hero { position: relative; }
+    .modal-hero img { width: 100%; max-height: 340px; object-fit: cover; display: block; }
+    .close-btn {
+      position: absolute; top: 12px; left: 12px;
+      width: 42px; height: 42px; border-radius: 50%;
+      border: none; background: rgba(255,255,255,.95); color: #222;
+      font-size: 1.4rem; line-height: 1;
+    }
+    .modal-content { padding: 20px 24px 28px; }
+    .modal-content h2 { margin: 0 0 8px; font-size: 1.8rem; direction: ltr; text-align: right; }
+    .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tag { background: var(--chip); padding: 4px 12px; border-radius: 999px; font-size: .9rem; }
+    .modal-cols { display: grid; grid-template-columns: 260px 1fr; gap: 28px; }
+    @media (max-width: 700px) { .modal-cols { grid-template-columns: 1fr; } }
+    .modal-content h3 { margin: 0 0 10px; color: var(--primary); }
+    .ingredients { list-style: none; padding: 0; margin: 0; direction: ltr; }
+    .ingredients li {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 0; border-bottom: 1px dashed var(--border);
+    }
+    .ingredients img { width: 34px; height: 34px; object-fit: contain; }
+    .ingredients .measure { color: var(--muted); font-size: .9rem; margin-left: auto; }
+    .instructions { direction: ltr; text-align: left; }
+    .instructions p { margin: 0 0 10px; }
+    .modal-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .modal-actions a { text-decoration: none; display: inline-block; }
+
+    footer { text-align: center; color: var(--muted); font-size: .9rem; padding: 24px 16px 32px; border-top: 1px solid var(--border); }
+    footer a { color: var(--primary); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container">
+      <h1>🍳 מה מבשלים היום?</h1>
+      <p>אלפי מתכונים מכל העולם: חפשו לפי שם מנה או לפי מה שיש לכם במקרר</p>
+
+      <div class="search-box">
+        <div class="modes">
+          <button class="mode-btn active" data-mode="name">לפי שם מנה</button>
+          <button class="mode-btn" data-mode="ingredient">לפי מרכיב</button>
+        </div>
+        <form id="search-form" class="search-row">
+          <input id="search-input" type="text" placeholder="לדוגמה: עוף, פסטה, chocolate..." autocomplete="off">
+          <button class="btn" type="submit">חיפוש</button>
+          <button class="btn secondary" type="button" id="random-btn">🎲 מתכון אקראי</button>
+        </form>
+        <p class="hint">המתכונים מגיעים באנגלית. אפשר לחפש בעברית מילים נפוצות (עוף, אורז, שוקולד...), ואת כל השאר באנגלית.</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <nav class="categories" id="categories" aria-label="קטגוריות"></nav>
+
+    <div class="results-head">
+      <h2 id="results-title">טוען...</h2>
+      <button class="btn secondary" id="favs-btn">❤️ המועדפים שלי (<span id="favs-count">0</span>)</button>
+    </div>
+
+    <section class="grid" id="grid"></section>
+  </main>
+
+  <dialog id="modal"></dialog>
+
+  <footer>
+    המידע מגיע מ־<a href="https://www.themealdb.com/api.php" target="_blank" rel="noopener">TheMealDB API</a> · נבנה בעזרת AI
+  </footer>
+
+  <script>
+    // ===== הגדרות ה־API =====
+    // כתובת הבסיס של TheMealDB. המפתח "1" הוא מפתח בדיקה ציבורי וחינמי.
+    const API = 'https://www.themealdb.com/api/json/v1/1/';
+
+    // פונקציה כללית לקריאה ל־API: שולחת בקשה ומחזירה JSON
+    async function api(path) {
+      const res = await fetch(API + path);
+      if (!res.ok) throw new Error('שגיאת שרת: ' + res.status);
+      return res.json();
+    }
+
+    // ===== תרגומים =====
+    const CATEGORY_HE = {
+      Beef: 'בקר', Breakfast: 'ארוחת בוקר', Chicken: 'עוף', Dessert: 'קינוחים',
+      Goat: 'עז', Lamb: 'טלה', Miscellaneous: 'שונות', Pasta: 'פסטה', Pork: 'חזיר',
+      Seafood: 'פירות ים', Side: 'תוספות', Starter: 'מנות פתיחה', Vegan: 'טבעוני',
+      Vegetarian: 'צמחוני'
+    };
+    const AREA_HE = {
+      American: 'אמריקאי', British: 'בריטי', Canadian: 'קנדי', Chinese: 'סיני',
+      Croatian: 'קרואטי', Dutch: 'הולנדי', Egyptian: 'מצרי', French: 'צרפתי',
+      Greek: 'יווני', Indian: 'הודי', Irish: 'אירי', Italian: 'איטלקי',
+      Jamaican: 'ג׳מייקני', Japanese: 'יפני', Kenyan: 'קנייתי', Malaysian: 'מלזי',
+      Mexican: 'מקסיקני', Moroccan: 'מרוקאי', Polish: 'פולני', Portuguese: 'פורטוגלי',
+      Russian: 'רוסי', Spanish: 'ספרדי', Thai: 'תאילנדי', Tunisian: 'תוניסאי',
+      Turkish: 'טורקי', Vietnamese: 'וייטנאמי', Filipino: 'פיליפיני', Ukrainian: 'אוקראיני'
+    };
+    // מילון קטן עברית → אנגלית, כדי שאפשר יהיה לחפש בעברית
+    const SEARCH_HE = {
+      'עוף': 'chicken', 'בקר': 'beef', 'דג': 'fish', 'דגים': 'fish', 'סלמון': 'salmon',
+      'טונה': 'tuna', 'אורז': 'rice', 'פסטה': 'pasta', 'ביצה': 'eggs', 'ביצים': 'eggs',
+      'תפוח אדמה': 'potatoes', 'תפוחי אדמה': 'potatoes', 'עגבניה': 'tomatoes', 'עגבניות': 'tomatoes',
+      'גבינה': 'cheese', 'שוקולד': 'chocolate', 'בצל': 'onion', 'שום': 'garlic', 'חלב': 'milk',
+      'תפוח': 'apple', 'בננה': 'banana', 'עדשים': 'lentils', 'חציל': 'aubergine',
+      'פטריות': 'mushrooms', 'טלה': 'lamb', 'שרימפס': 'prawns', 'עוגה': 'cake', 'מרק': 'soup',
+      'פנקייק': 'pancakes', 'פאי': 'pie', 'קארי': 'curry', 'לחם': 'bread', 'חמאה': 'butter',
+      'קמח': 'flour', 'סוכר': 'sugar', 'לימון': 'lemon', 'גזר': 'carrots', 'תרד': 'spinach',
+      'חומוס': 'chickpeas', 'פיצה': 'pizza', 'המבורגר': 'burger', 'סלט': 'salad', 'עוגיות': 'cookies'
+    };
+    const heCategory = c => CATEGORY_HE[c] || c;
+    const heArea = a => AREA_HE[a] || a;
+
+    // ===== אלמנטים בדף =====
+    const grid = document.getElementById('grid');
+    const resultsTitle = document.getElementById('results-title');
+    const categoriesEl = document.getElementById('categories');
+    const modal = document.getElementById('modal');
+    const input = document.getElementById('search-input');
+    let searchMode = 'name';
+
+    // מונע הזרקת HTML מטקסט שמגיע מבחוץ
+    function esc(str) {
+      const div = document.createElement('div');
+      div.textContent = str ?? '';
+      return div.innerHTML;
+    }
+
+    // ===== מועדפים (נשמרים בדפדפן) =====
+    function getFavs() {
+      try { return JSON.parse(localStorage.getItem('favMeals')) || []; }
+      catch { return []; }
+    }
+    function saveFavs(favs) {
+      try { localStorage.setItem('favMeals', JSON.stringify(favs)); } catch {}
+      document.getElementById('favs-count').textContent = favs.length;
+    }
+    const isFav = id => getFavs().some(m => m.idMeal === id);
+    function toggleFav(meal) {
+      let favs = getFavs();
+      if (isFav(meal.idMeal)) favs = favs.filter(m => m.idMeal !== meal.idMeal);
+      else favs.push({ idMeal: meal.idMeal, strMeal: meal.strMeal, strMealThumb: meal.strMealThumb });
+      saveFavs(favs);
+    }
+
+    // ===== הצגת מצבים =====
+    function showLoading(title) {
+      resultsTitle.textContent = title;
+      grid.innerHTML = '<div class="status"><div class="spinner"></div>טוען מתכונים...</div>';
+    }
+    function showMessage(msg) {
+      grid.innerHTML = `<div class="status">${msg}</div>`;
+    }
+
+    // ===== הצגת כרטיסי מתכונים =====
+    function renderMeals(meals, title) {
+      resultsTitle.textContent = title;
+      if (!meals || meals.length === 0) {
+        showMessage('😕 לא נמצאו מתכונים. נסו מילה אחרת או חפשו באנגלית.');
+        return;
+      }
+      grid.innerHTML = '';
+      meals.forEach(meal => {
+        const card = document.createElement('article');
+        card.className = 'card';
+        const meta = [meal.strCategory && heCategory(meal.strCategory), meal.strArea && heArea(meal.strArea)]
+          .filter(Boolean).join(' · ');
+        card.innerHTML = `
+          <img src="${esc(meal.strMealThumb)}/medium" alt="${esc(meal.strMeal)}" loading="lazy">
+          <button class="fav-btn" title="הוספה למועדפים">${isFav(meal.idMeal) ? '❤️' : '🤍'}</button>
+          <div class="card-body">
+            <h3>${esc(meal.strMeal)}</h3>
+            ${meta ? `<div class="meta">${esc(meta)}</div>` : ''}
+          </div>`;
+        card.addEventListener('click', () => openMeal(meal.idMeal));
+        card.querySelector('.fav-btn').addEventListener('click', e => {
+          e.stopPropagation(); // שלא ייפתח המתכון בלחיצה על הלב
+          toggleFav(meal);
+          e.currentTarget.textContent = isFav(meal.idMeal) ? '❤️' : '🤍';
+        });
+        grid.appendChild(card);
+      });
+    }
+
+    // ===== קטגוריות =====
+    async function loadCategories() {
+      try {
+        const data = await api('categories.php');
+        data.categories.forEach(cat => {
+          const btn = document.createElement('button');
+          btn.className = 'cat';
+          btn.innerHTML = `<img src="${esc(cat.strCategoryThumb)}" alt="">${esc(heCategory(cat.strCategory))}`;
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.cat').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadCategory(cat.strCategory);
+          });
+          categoriesEl.appendChild(btn);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadCategory(category) {
+      showLoading('קטגוריה: ' + heCategory(category));
+      try {
+        const data = await api('filter.php?c=' + encodeURIComponent(category));
+        renderMeals(data.meals, `קטגוריה: ${heCategory(category)} (${data.meals?.length || 0} מתכונים)`);
+      } catch {
+        showMessage('⚠️ הייתה בעיה בטעינה. בדקו את החיבור לאינטרנט ונסו שוב.');
+      }
+    }
+
+    // ===== חיפוש =====
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        searchMode = btn.dataset.mode;
+        input.placeholder = searchMode === 'name'
+          ? 'לדוגמה: עוף, פסטה, chocolate...'
+          : 'לדוגמה: ביצים, אורז, salmon...';
+        input.focus();
+      });
+    });
+
+    document.getElementById('search-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const raw = input.value.trim();
+      if (!raw) return;
+
+      // אם המילה בעברית – מתרגמים אותה לאנגלית בעזרת המילון
+      let term = raw;
+      if (/[֐-׿]/.test(raw)) {
+        term = SEARCH_HE[raw];
+        if (!term) {
+          resultsTitle.textContent = `חיפוש: "${raw}"`;
+          showMessage('🤔 לא מכיר את המילה הזו בעברית. נסו לכתוב אותה באנגלית (למשל: chicken).');
+          return;
+        }
+      }
+      document.querySelectorAll('.cat').forEach(b => b.classList.remove('active'));
+      showLoading(`חיפוש: "${raw}"`);
+
+      try {
+        let data;
+        if (searchMode === 'name') {
+          data = await api('search.php?s=' + encodeURIComponent(term));
+        } else {
+          // ב־API, מרכיב שכולל רווח נכתב עם קו תחתון (chicken_breast)
+          data = await api('filter.php?i=' + encodeURIComponent(term.toLowerCase().replace(/\s+/g, '_')));
+        }
+        const label = searchMode === 'name' ? 'מנות בשם' : 'מנות עם';
+        renderMeals(data.meals, `${label} "${raw}" (${data.meals?.length || 0})`);
+      } catch {
+        showMessage('⚠️ הייתה בעיה בחיפוש. נסו שוב.');
+      }
+    });
+
+    // ===== מתכון אקראי =====
+    document.getElementById('random-btn').addEventListener('click', async () => {
+      try {
+        const data = await api('random.php');
+        showMealModal(data.meals[0]);
+      } catch {
+        alert('לא הצלחנו להביא מתכון אקראי, נסו שוב.');
+      }
+    });
+
+    // ===== מועדפים =====
+    document.getElementById('favs-btn').addEventListener('click', () => {
+      document.querySelectorAll('.cat').forEach(b => b.classList.remove('active'));
+      const favs = getFavs();
+      if (favs.length === 0) {
+        resultsTitle.textContent = 'המועדפים שלי';
+        showMessage('עוד לא שמרתם מתכונים. לחצו על 🤍 בכרטיס כדי לשמור.');
+      } else {
+        renderMeals(favs, `המועדפים שלי (${favs.length})`);
+      }
+    });
+
+    // ===== פתיחת מתכון מלא =====
+    async function openMeal(id) {
+      modal.innerHTML = '<div class="status"><div class="spinner"></div>טוען מתכון...</div>';
+      modal.showModal();
+      try {
+        const data = await api('lookup.php?i=' + encodeURIComponent(id));
+        showMealModal(data.meals[0]);
+      } catch {
+        modal.innerHTML = '<div class="status">⚠️ לא הצלחנו לטעון את המתכון.</div>';
+      }
+    }
+
+    function showMealModal(meal) {
+      // ב־API יש עד 20 מרכיבים בשדות נפרדים: strIngredient1..20 + strMeasure1..20
+      const ingredients = [];
+      for (let i = 1; i <= 20; i++) {
+        const name = meal['strIngredient' + i];
+        if (name && name.trim()) ingredients.push({ name: name.trim(), measure: (meal['strMeasure' + i] || '').trim() });
+      }
+      const steps = (meal.strInstructions || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+
+      modal.innerHTML = `
+        <div class="modal-hero">
+          <img src="${esc(meal.strMealThumb)}" alt="${esc(meal.strMeal)}">
+          <button class="close-btn" aria-label="סגירה">×</button>
+        </div>
+        <div class="modal-content">
+          <h2>${esc(meal.strMeal)}</h2>
+          <div class="tags">
+            ${meal.strCategory ? `<span class="tag">🍽️ ${esc(heCategory(meal.strCategory))}</span>` : ''}
+            ${meal.strArea ? `<span class="tag">🌍 מטבח ${esc(heArea(meal.strArea))}</span>` : ''}
+            <span class="tag">🧂 ${ingredients.length} מרכיבים</span>
+          </div>
+          <div class="modal-cols">
+            <div>
+              <h3>מרכיבים</h3>
+              <ul class="ingredients">
+                ${ingredients.map(ing => `
+                  <li>
+                    <img src="https://www.themealdb.com/images/ingredients/${encodeURIComponent(ing.name)}-small.png" alt="" loading="lazy">
+                    <span>${esc(ing.name)}</span>
+                    <span class="measure">${esc(ing.measure)}</span>
+                  </li>`).join('')}
+              </ul>
+            </div>
+            <div>
+              <h3>אופן ההכנה</h3>
+              <div class="instructions">${steps.map(s => `<p>${esc(s)}</p>`).join('')}</div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn" id="modal-fav">${isFav(meal.idMeal) ? '❤️ הסרה מהמועדפים' : '🤍 שמירה במועדפים'}</button>
+            ${meal.strYoutube ? `<a class="btn secondary" href="${esc(meal.strYoutube)}" target="_blank" rel="noopener">▶️ סרטון הכנה ב־YouTube</a>` : ''}
+            ${meal.strSource ? `<a class="btn secondary" href="${esc(meal.strSource)}" target="_blank" rel="noopener">🔗 המקור</a>` : ''}
+          </div>
+        </div>`;
+
+      modal.querySelector('.close-btn').addEventListener('click', () => modal.close());
+      modal.querySelector('#modal-fav').addEventListener('click', e => {
+        toggleFav(meal);
+        e.currentTarget.textContent = isFav(meal.idMeal) ? '❤️ הסרה מהמועדפים' : '🤍 שמירה במועדפים';
+        // מעדכן גם את הלב בכרטיס, אם הוא מוצג
+        document.querySelectorAll('.card').forEach(card => {
+          if (card.querySelector('h3').textContent === meal.strMeal)
+            card.querySelector('.fav-btn').textContent = isFav(meal.idMeal) ? '❤️' : '🤍';
+        });
+      });
+      if (!modal.open) modal.showModal();
+      modal.scrollTop = 0;
+    }
+
+    // סגירת החלון בלחיצה על הרקע הכהה
+    modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
+
+    // ===== טעינה ראשונית: 8 מתכונים אקראיים להשראה =====
+    async function loadInspiration() {
+      showLoading('השראה להיום');
+      try {
+        const results = await Promise.all(Array.from({ length: 8 }, () => api('random.php')));
+        const unique = new Map();
+        results.forEach(r => unique.set(r.meals[0].idMeal, r.meals[0]));
+        renderMeals([...unique.values()], '✨ השראה להיום');
+      } catch {
+        showMessage('⚠️ לא הצלחנו להתחבר לשרת המתכונים. בדקו את החיבור לאינטרנט.');
+      }
+    }
+
+    saveFavs(getFavs()); // מעדכן את מונה המועדפים
+    loadCategories();
+    loadInspiration();
+  </script>
+</body>
+</html>
